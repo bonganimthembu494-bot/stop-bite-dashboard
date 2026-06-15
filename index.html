@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stop Bite Dashboard</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin:auto;
+    padding:20px;
+    background:#f4f6f9;
+}
+
+h1{
+    text-align:center;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:16px;
+}
+
+.primary{
+    background:#2563eb;
+    color:white;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:10px 0;
+}
+
+.stat{
+    font-size:24px;
+    font-weight:bold;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    padding:10px;
+    border-bottom:1px solid #ddd;
+    text-align:left;
+}
+</style>
+</head>
+<body>
+
+<h1>🦷 Stop Bite Dashboard</h1>
+
+<div class="card">
+    <h2>Log Event</h2>
+
+    <input id="trigger" placeholder="Trigger / Notes (optional)">
+
+    <button class="primary" onclick="logEvent()">
+        Log Stop Event
+    </button>
+</div>
+
+<div class="card">
+    <h2>Current Status</h2>
+
+    <p>Last Stop:</p>
+    <div id="lastStop" class="stat">No entries yet</div>
+
+    <br>
+
+    <p>Time Since Last Stop:</p>
+    <div id="timeSince" class="stat">--</div>
+</div>
+
+<div class="card">
+    <h2>Today's Count</h2>
+    <div id="todayCount" class="stat">0</div>
+</div>
+
+<div class="card">
+    <h2>History</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date & Time</th>
+                <th>Trigger</th>
+            </tr>
+        </thead>
+        <tbody id="history"></tbody>
+    </table>
+</div>
+
+<script>
+
+let logs = JSON.parse(localStorage.getItem("stopBiteLogs") || "[]");
+
+function saveLogs(){
+    localStorage.setItem("stopBiteLogs", JSON.stringify(logs));
+}
+
+function logEvent(){
+
+    const trigger =
+        document.getElementById("trigger").value;
+
+    logs.unshift({
+        timestamp:new Date().toISOString(),
+        trigger:trigger
+    });
+
+    saveLogs();
+
+    document.getElementById("trigger").value="";
+
+    render();
+}
+
+function render(){
+
+    const history =
+        document.getElementById("history");
+
+    history.innerHTML="";
+
+    logs.forEach(log => {
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${new Date(log.timestamp)
+                .toLocaleString()}</td>
+            <td>${log.trigger || "-"}</td>
+        `;
+
+        history.appendChild(row);
+    });
+
+    if(logs.length > 0){
+
+        const last =
+            new Date(logs[0].timestamp);
+
+        document.getElementById("lastStop")
+            .textContent =
+            last.toLocaleString();
+
+        updateTimeSince(last);
+    }
+
+    updateTodayCount();
+}
+
+function updateTodayCount(){
+
+    const today =
+        new Date().toDateString();
+
+    const count =
+        logs.filter(l =>
+            new Date(l.timestamp)
+            .toDateString() === today
+        ).length;
+
+    document.getElementById("todayCount")
+        .textContent = count;
+}
+
+function updateTimeSince(last){
+
+    function refresh(){
+
+        const now = new Date();
+
+        const diff =
+            Math.floor(
+                (now - last) / 1000
+            );
+
+        const hours =
+            Math.floor(diff / 3600);
+
+        const minutes =
+            Math.floor((diff % 3600) / 60);
+
+        const seconds =
+            diff % 60;
+
+        document.getElementById("timeSince")
+            .textContent =
+            `${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    refresh();
+
+    setInterval(refresh,1000);
+}
+
+render();
+
+</script>
+
+</body>
+</html>
